@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Datepicker Demo</title>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+    <script src="http://code.jquery.com/jquery-1.11.3.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+    <script src="datepicker.js"></script>
+    <link href="datepicker.css" rel="stylesheet"/>
+    
+    <script type="text/javascript">
+        $(document).ready(function() {
+            new datepicker({ target: $('.datepicker > div') });
+        })
+    </script>
+</head>
+<body>
+    <div class="datepicker">
+        <div>
+            <div style="background: red;"></div>
+            <div style="background: green;"></div>
+            <div style="background: blue;"></div>
+        </div>
+    </div>
+</body>
+</html>
