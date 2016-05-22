@@ -1,26 +1,88 @@
 
-function datepicker(args) {
+function InfiniteDrag(args) {
     this.data = args;
-    this.data.target.data('datepicker', this);
+    this.data.target.data('InfiniteDrag', this);
+    this.data.move = this.data.move || true;
+    this.data.onInit  = $.isFunction(this.data.onInit)  ? this.data.onInit    : function() {};
+    this.data.onStart = $.isFunction(this.data.onStart) ? this.data.onStart   : function() {};
+    this.data.onDrag  = $.isFunction(this.data.onDrag)  ? this.data.onDrag    : function() {};
+    this.data.onStop  = $.isFunction(this.data.onStop)  ? this.data.onStop    : function() {};
+    this.data.width  = this.data.width  ? this.data.width  : this.data.target.parent().width();
+    this.data.height = this.data.height != undefined ? this.data.height : this.data.target.parent().height();
+    this.correct = this.correct || true;
+    this.forceAxis = this.data.axis || false;
     this.init();
 }
 datepicker.prototype.init = function() {
     var that = this;
-    this.data.target.css({'position': 'relative', 'left': 0 })
-    this.data.target.mousedown(function(e) {
+    this.data.target.css({'position': 'relative', 'left': -this.data.width, 'top': -this.data.height });
+    this.data.onInit(this);
+    this.data.target.on('mousedown touchstart', function(e) {
         that.drag = true;
-        that.offsetX = e.pageX - (that.dragX || 0);
-        that.offsetY = e.pageY - (that.dragY || 0);
+        that.startX = e.pageX - (that.dragX || -that.data.width);
+        that.startY = e.pageY - (that.dragY || -that.data.height);
+        that.dragX = -that.data.width;
+        that.dragY = -that.data.height;
+        that.data.onStart(e, that);
     });
-    $(document).mouseup(function() {
-        that.drag = false;
-    });
-    $(document).mousemove(function(e) {
+    $(document).on('mousemove touchmove', function(e) {
         if (!that.drag) return;
-        that.dragX = e.pageX - that.offsetX;
-        that.dragY = e.pageY - that.offsetY;
-        that.data.target.css({'left': that.dragX, 'top': that.dragY });
-    })
+        
+        that.dragX = e.pageX - that.startX;
+        that.distanceX = that.dragX + that.data.width;
+        if (!that.axis || that.axis.toLowerCase() != 'y' ) {
+            if (that.distanceX <= -(that.data.width / 2)) {
+                that.data.target.find('.drag-column:first-child').each(function() {
+                    $(this).appendTo($(this).parent())
+                })
+                that.dragX = that.data.width / 2;
+                that.startX = e.pageX + that.data.width / 2;
+            }
+            if (that.distanceX >= that.data.width / 2) {
+                that.data.target.find('.drag-column:last-child').each(function() {
+                    $(this).prependTo($(this).parent())
+                })
+                that.dragX = -(that.data.width * 1.5);
+                that.startX = e.pageX + that.data.width * 1.5;
+            }
+            if (that.distanceX >= 5 || that.distanceX <= -5) {
+                that.axis = 'x';
+                that.data.target.css({ 'left': that.dragX });
+            }
+        }
+        if (!that.axis || that.axis.toLowerCase() != 'x') {
+            that.dragY = e.pageY - that.startY;
+            that.distanceY = that.dragY + that.data.height;
+            
+            if (that.distanceY <= -(that.data.height / 2)) {
+                that.data.target.find('.drag-row:first-child').each(function() {
+                    $(this).appendTo($(this).parent())
+                })
+                that.dragY = that.data.height / 2;
+                that.startY = e.pageY + that.data.height / 2;
+            }
+            if (that.distanceY >= that.data.height / 2) {
+                that.data.target.find('.drag-row:last-child').each(function() {
+                    $(this).prependTo($(this).parent())
+                })
+                that.dragY = -(that.data.height * 1.5);
+                that.startY = e.pageY + that.data.height * 1.5;
+            }
+            if (that.distanceY >= 5 || that.distanceY <= -5) {
+                that.axis = 'y';
+                that.data.target.css({ 'top': that.dragY });
+            }
+        }
+    });
+    $(document).on('mouseup touchend', function(e) {
+        that.drag = false;
+        that.axis = that.data.axis || false;
+        if (that.correct === true) {
+            $(that.data.target).animate({ left: -that.data.width, top: -that.data.height });
+            that.dragX = -that.data.width;
+            that.dragY = -that.data.height;
+        }
+    });
 }
 
 

@@ -1,4 +1,4 @@
-.datepicker {
+#InfiniteDrag {
     border: 2px solid #333;
     width: 300px;
     height: 200px;
@@ -6,12 +6,24 @@
     margin: 5% auto;
     position: relative;
 }
-.datepicker > div {
+#InfiniteDrag > div {
     width: 900px;
-    height: 100%;
+    height: 600px;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -o-user-select: none;
+    user-select: none;
 }
-.datepicker > div > div {
+#InfiniteDrag > div .drag-column {
     width: 300px;
     height: 200px;
     float: left;
+}
+#InfiniteDrag > div .drag-row {
+    width: 300px;
+    height: 200px;
+    color: #fff;
+    font-size: 40px;
+    text-align: center;
 }
