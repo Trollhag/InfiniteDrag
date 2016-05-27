@@ -2,156 +2,114 @@
 function InfiniteDrag(args) {
     this.data = args;
     this.data.target.data('InfiniteDrag', this);
+    this.data.handle = this.data.handle || this.data.target.find('.handle');
     this.data.move = this.data.move || true;
-    this.data.onInit  = $.isFunction(this.data.onInit)  ? this.data.onInit    : function() {};
-    this.data.onStart = $.isFunction(this.data.onStart) ? this.data.onStart   : function() {};
-    this.data.onDrag  = $.isFunction(this.data.onDrag)  ? this.data.onDrag    : function() {};
-    this.data.onStop  = $.isFunction(this.data.onStop)  ? this.data.onStop    : function() {};
-    this.data.width  = this.data.width  ? this.data.width  : this.data.target.parent().width();
-    this.data.height = this.data.height != undefined ? this.data.height : this.data.target.parent().height();
+    this.data.onInit  = $.isFunction(this.data.onInit)  ? this.data.onInit  : function() {};
+    this.data.onStart = $.isFunction(this.data.onStart) ? this.data.onStart : function() {};
+    this.data.onDrag  = $.isFunction(this.data.onDrag)  ? this.data.onDrag  : function() {};
+    this.data.onStop  = $.isFunction(this.data.onStop)  ? this.data.onStop  : function() {};
+    this.data.onStop  = $.isFunction(this.data.onSwap) ? this.data.onXSwap  : function() {};
+    this.data.width  = this.data.width  != undefined ? this.data.width  : this.data.target.width();
+    this.data.height = this.data.height != undefined ? this.data.height : this.data.target.height();
     this.correct = this.correct || true;
     this.forceAxis = this.data.axis || false;
-    this.init();
+    this.Init();
 }
-datepicker.prototype.init = function() {
+InfiniteDrag.prototype.Init = function() {
     var that = this;
-    this.data.target.css({'position': 'relative', 'left': -this.data.width, 'top': -this.data.height });
-    this.data.onInit(this);
-    this.data.target.on('mousedown touchstart', function(e) {
-        that.drag = true;
-        that.startX = e.pageX - (that.dragX || -that.data.width);
-        that.startY = e.pageY - (that.dragY || -that.data.height);
-        that.dragX = -that.data.width;
-        that.dragY = -that.data.height;
-        that.data.onStart(e, that);
+    this.data.handle.css({'position': 'relative', 'left': (this.data.axis != 'y' ? -this.data.width : 0), 'top': (this.data.axis != 'x' ? -this.data.height : 0) });
+    this.data.handle.addClass('drag-' + (this.data.axis ? this.data.axis : 'xy'));
+    this.data.onInit.call(this);
+    this.data.handle.on('mousedown touchstart', function(e) { that.Start(e); });
+    $(document).on('mousemove touchmove', function(e) { that.Drag(e); });
+    $(document).on('mouseup touchend', function(e) { that.Stop(e) });
+    $(document).on('selectstart', function(e) { // Prevent user selection when dragging
+        if (that.dragging) {
+            e.preventDefault();
+            return false;
+        }
     });
-    $(document).on('mousemove touchmove', function(e) {
-        if (!that.drag) return;
+}
+InfiniteDrag.prototype.Start = function(e) {
+    this.drag = true;
+    this.startX = e.pageX - (this.dragX || -this.data.width);
+    this.startY = e.pageY - (this.dragY || -this.data.height);
+    this.dragX = -this.data.width;
+    this.dragY = -this.data.height;
+    this.data.onStart(e, this);
+}
+InfiniteDrag.prototype.Drag = function(e) {
+    if (!this.drag) return;
+    this.dragging = true;
+    this.dragX = e.pageX - this.startX;
+    this.distanceX = this.dragX + this.data.width;
+    if (!this.axis || this.axis.toLowerCase() != 'y' ) {
+        if (this.distanceX < -(this.data.width / 2)) {
+            this.data.target.find('.drag-column:first-child').each(function() {
+                $(this).appendTo($(this).parent())
+            })
+            this.startX = e.pageX + this.data.width / 2;
+            this.dragX = e.pageX - this.startX;
+            this.data.onSwap.call(this, this.data.target.find('.drag-column:last-child'), 'Left');
+        }
+        if (this.distanceX > this.data.width / 2) {
+            this.data.target.find('.drag-column:last-child').each(function() {
+                $(this).prependTo($(this).parent())
+            })
+            this.startX = e.pageX + this.data.width * 1.5;
+            this.dragX = e.pageX - this.startX;
+            this.data.onSwap.call(this, this.data.target.find('.drag-column:first-child'), 'Right');
+        }
+        if (this.distanceX >= 5 || this.distanceX <= -5) {
+            this.axis = 'x';
+            this.data.handle.css({ 'left': this.dragX });
+        }
+    }
+    if (!this.axis || this.axis.toLowerCase() != 'x') {
+        this.dragY = e.pageY - this.startY;
+        this.distanceY = this.dragY + this.data.height;
         
-        that.dragX = e.pageX - that.startX;
-        that.distanceX = that.dragX + that.data.width;
-        if (!that.axis || that.axis.toLowerCase() != 'y' ) {
-            if (that.distanceX <= -(that.data.width / 2)) {
-                that.data.target.find('.drag-column:first-child').each(function() {
-                    $(this).appendTo($(this).parent())
-                })
-                that.dragX = that.data.width / 2;
-                that.startX = e.pageX + that.data.width / 2;
-            }
-            if (that.distanceX >= that.data.width / 2) {
-                that.data.target.find('.drag-column:last-child').each(function() {
-                    $(this).prependTo($(this).parent())
-                })
-                that.dragX = -(that.data.width * 1.5);
-                that.startX = e.pageX + that.data.width * 1.5;
-            }
-            if (that.distanceX >= 5 || that.distanceX <= -5) {
-                that.axis = 'x';
-                that.data.target.css({ 'left': that.dragX });
-            }
+        if (this.distanceY < -(this.data.height / 2)) {
+            this.data.target.find('.drag-row:first-child').each(function() {
+                $(this).appendTo($(this).parent())
+            })
+            this.startY = e.pageY + this.data.height / 2;
+            this.dragY = e.pageY - this.startY;
+            this.data.onSwap.call(this, this.data.target.find('.drag-row:last-child'), 'Up');
         }
-        if (!that.axis || that.axis.toLowerCase() != 'x') {
-            that.dragY = e.pageY - that.startY;
-            that.distanceY = that.dragY + that.data.height;
-            
-            if (that.distanceY <= -(that.data.height / 2)) {
-                that.data.target.find('.drag-row:first-child').each(function() {
-                    $(this).appendTo($(this).parent())
-                })
-                that.dragY = that.data.height / 2;
-                that.startY = e.pageY + that.data.height / 2;
-            }
-            if (that.distanceY >= that.data.height / 2) {
-                that.data.target.find('.drag-row:last-child').each(function() {
-                    $(this).prependTo($(this).parent())
-                })
-                that.dragY = -(that.data.height * 1.5);
-                that.startY = e.pageY + that.data.height * 1.5;
-            }
-            if (that.distanceY >= 5 || that.distanceY <= -5) {
-                that.axis = 'y';
-                that.data.target.css({ 'top': that.dragY });
-            }
+        if (this.distanceY > this.data.height / 2) {
+            this.data.target.find('.drag-row:last-child').each(function() {
+                $(this).prependTo($(this).parent())
+            })
+            this.startY = e.pageY + this.data.height * 1.5;
+            this.dragY = e.pageY - this.startY;
+            this.data.onSwap.call(this, this.data.target.find('.drag-row:first-child'), 'Down');
         }
-    });
-    $(document).on('mouseup touchend', function(e) {
-        that.drag = false;
-        that.axis = that.data.axis || false;
-        if (that.correct === true) {
-            $(that.data.target).animate({ left: -that.data.width, top: -that.data.height });
-            that.dragX = -that.data.width;
-            that.dragY = -that.data.height;
+        if (this.distanceY >= 5 || this.distanceY <= -5) {
+            this.axis = 'y';
+            this.data.handle.css({ 'top': this.dragY });
         }
-    });
+    }
 }
-
-
-/*
-function datepicker(args) {
-    this.data = args;
-    this.data.target.data('datepicker', this);
-    this.init();
-}
-datepicker.prototype.init = function() {
-    this.data.target.css('left', -this.data.target.parent().width());
-    this.data.target.draggable({
-        start: function(e, ui) {
-            var DP = $(this).data('datepicker');
-            DP.block = false;
-        },
-        drag: function(e, ui, data) {
-            var DP = $(this).data('datepicker');
-            if (!DP.block) {
-                if (ui.position.top != ui.originalPosition.top) {
-                    $(this).draggable('option', 'axis', 'y');
-                    DP.block = true;
-                }
-                else if (ui.position.left != ui.originalPosition.left) {
-                    $(this).draggable('option', 'axis', 'x');
-                    DP.block = true;
-                }
+InfiniteDrag.prototype.Stop = function(e) {
+    if (this.dragging) { // If a selection was made during draging remove it
+        if (window.getSelection) {
+            if (window.getSelection().empty) {  // Chrome
+                window.getSelection().empty();
             }
-            if (ui.position.left < ui.originalPosition.left) {
-                //Drag left
-                if (ui.position.left - ui.originalPosition.left < ui.originalPosition.left / 2) {
-                    $(this).append($(this).children(':first-child'));
-                    $(this).css({'left': ui.position.left + $(this).parent().width() })
-                    ui.position.left += $(this).parent().width()
-                }
+            else if (window.getSelection().removeAllRanges) {  // Firefox
+                window.getSelection().removeAllRanges();
             }
-            else if (ui.position.left > ui.originalPosition.left) {
-                // Drag right
-                $(this).prepend($(this).children(':last-child'));
-                $(this).css({'left': ui.position.left - $(this).parent().width() })
-            }
-        },
-        stop: function(e, ui) {
-            var DP = $(this).data('datepicker');
-            $(this).draggable('option', 'axis', false);
-            DP.block = false;
-            var corrTop = Math.round(ui.position.top / $(this).parent().height()) * $(this).parent().height();
-            var corrLeft = Math.round(ui.position.left / $(this).parent().width()) * $(this).parent().width();
-            
-            $(this).animate({ top: corrTop, left: corrLeft });
         }
-    });
+        else if (document.selection) {  // IE?
+            document.selection.empty();
+        }
+    }
+    this.axis = this.data.axis || false;
+    if (this.correct === true) {
+        $(this.data.handle).animate({ 'left': (this.data.axis != 'y' ? -this.data.width : 0), 'top': (this.data.axis != 'x' ? -this.data.height : 0) });
+        this.dragX = -this.data.width;
+        this.dragY = -this.data.height;
+    }
+    this.drag = this.dragging = false;
 }
-datepicker.prototype.startDrag = function(e) {
-}
-datepicker.prototype.stopDrag = function(e) {
-}
-
-    this.data.target.on('DOMMouseScroll mousewheel scroll', function (e) {
-        if(e.originalEvent.detail > 0 || e.originalEvent.wheelDelta < 0) { //alternative options for wheelData: wheelDeltaX & wheelDeltaY
-            this.scroll = 'Down';
-        } else if (e.originalEvent.detail < 0 || e.originalEvent.wheelDelta > 0) {
-            this.scroll = 'Up';
-        }
-        else if ($(this).scrollLeft() >= 25){
-            this.scroll = 'Left'
-        }
-        else if ($(this).scrollLeft() < 25) {
-            this.scroll = 'Right';
-        }
-    });
-*/
